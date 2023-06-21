@@ -11,40 +11,29 @@ import (
 	"github.com/7dpk/keyvaluestore/database"
 )
 
-// HTTPHandler handles the HTTP requests and interacts with the Database
+// handle the HTTP requests and interact with the Database
 type HTTPHandler struct {
 	Database *database.Database
 }
 
-// RequestBody represents the request body JSON structure
+// represent the request body JSON structure
 type RequestBody struct {
 	Command string `json:"command"`
 }
 
-// ResponseError represents the error response JSON structure
+// represent the error response JSON structure
 type ResponseError struct {
 	Error string `json:"error"`
 }
 
-// ResponseValue represents the value response JSON structure
+// represent the value response JSON structure
 type ResponseValue struct {
 	Value string `json:"value"`
 }
 
-// ResponseBlank represents the blank response JSON structure
 type ResponseBlank struct{}
 
-// concatValues concatenates the values with space separator
-func concatValues(values []string) string {
-	return strings.Join(values, " ")
-}
-
-// splitValues splits the value string into a slice of values
-func splitValues(value string) []string {
-	return strings.Fields(value)
-}
-
-// writeErrorJSON writes the error response JSON to the response writer
+// write the error response JSON to the response writer
 func writeErrorJSON(w http.ResponseWriter, errMsg string, statusCode int) {
 	response := ResponseError{
 		Error: errMsg,
@@ -52,7 +41,7 @@ func writeErrorJSON(w http.ResponseWriter, errMsg string, statusCode int) {
 	writeJSONResponse(w, response, statusCode)
 }
 
-// writeValueJSON writes the value response JSON to the response writer
+// write the value response JSON to the response writer
 func writeValueJSON(w http.ResponseWriter, value string) {
 	response := ResponseValue{
 		Value: value,
@@ -60,13 +49,13 @@ func writeValueJSON(w http.ResponseWriter, value string) {
 	writeJSONResponse(w, response, http.StatusOK)
 }
 
-// writeBlankJSON writes the blank response JSON to the response writer
+// write the blank response JSON to the response writer
 func writeBlankJSON(w http.ResponseWriter) {
 	response := ResponseBlank{}
 	writeJSONResponse(w, response, http.StatusOK)
 }
 
-// writeJSONResponse writes the given response object as JSON to the response writer
+// write the given response object as JSON to the response writer
 func writeJSONResponse(w http.ResponseWriter, response interface{}, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
@@ -76,7 +65,7 @@ func writeJSONResponse(w http.ResponseWriter, response interface{}, statusCode i
 	}
 }
 
-// handleRequest handles the HTTP request and performs the appropriate database operation
+// handle the HTTP request and perform the appropriate database operation
 func (h *HTTPHandler) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	var requestBody RequestBody
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
@@ -168,7 +157,7 @@ func (h *HTTPHandler) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		key := parts[1]
 		timeoutStr := parts[2]
-		timeoutSeconds, err := strconv.Atoi(timeoutStr)
+		timeoutSeconds, err := strconv.ParseFloat(timeoutStr, 64)
 		if err != nil {
 			writeErrorJSON(w, "invalid timeout", http.StatusBadRequest)
 			return

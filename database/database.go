@@ -2,25 +2,25 @@ package database
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
 )
 
-// KeyValuePair struct
 type KeyValuePair struct {
 	Value      string
 	Expiration time.Time
 }
 
-// Database struct to store key-value pairs
+// struct to store key-value pairs
 type Database struct {
 	data   map[string]*KeyValuePair
 	lock   sync.Mutex
 	ticker *time.Ticker
 }
 
-// NewDatabase creates a new instance of Database
+// create a new instance of Database
 func NewDatabase() *Database {
 	ds := &Database{
 		data: make(map[string]*KeyValuePair),
@@ -29,7 +29,7 @@ func NewDatabase() *Database {
 	return ds
 }
 
-// Set sets the value in the database for the given key
+// set the value in the database for the given key
 func (ds *Database) Set(key, value string, expiry time.Duration, condition string) error {
 	ds.lock.Lock()
 	defer ds.lock.Unlock()
@@ -43,7 +43,7 @@ func (ds *Database) Set(key, value string, expiry time.Duration, condition strin
 			return fmt.Errorf("key does not exist")
 		}
 	}
-	fmt.Println("Adding value: " + value + " with expiry: " + expiry.String() + " condition: " + condition)
+	log.Println("Adding key:value -> " + key + " : " + value + " with expiry: " + expiry.String() + " condition: " + condition)
 	expiration := time.Time{}
 	if expiry > 0 {
 		expiration = time.Now().Add(expiry)
@@ -57,7 +57,7 @@ func (ds *Database) Set(key, value string, expiry time.Duration, condition strin
 	return nil
 }
 
-// Get retrieves the value from the database for the given key
+// retrieve the value from the database for the given key
 func (ds *Database) Get(key string) (string, error) {
 	ds.lock.Lock()
 	defer ds.lock.Unlock()
@@ -69,7 +69,7 @@ func (ds *Database) Get(key string) (string, error) {
 	return "", fmt.Errorf("key not found")
 }
 
-// QPush appends values to the queue in the database for the given key
+// append values to the queue in the database for the given key
 func (ds *Database) QPush(key string, values []string) {
 	ds.lock.Lock()
 	defer ds.lock.Unlock()
@@ -84,7 +84,7 @@ func (ds *Database) QPush(key string, values []string) {
 	}
 }
 
-// QPop retrieves and removes the last inserted value from the queue in the database for the given key
+// retrieve and removes the last inserted value from the queue in the database for the given key
 func (ds *Database) QPop(key string) (string, error) {
 	ds.lock.Lock()
 	defer ds.lock.Unlock()
@@ -105,7 +105,7 @@ func (ds *Database) QPop(key string) (string, error) {
 	return "", fmt.Errorf("key not found")
 }
 
-// BQPop retrieves and removes the last inserted value from the queue in the database for the given key.
+// retrieve and removes the last inserted value from the queue in the database for the given key.
 // If the queue is empty, it blocks the request until a value is available or the timeout is reached.
 func (ds *Database) BQPop(key string, timeout time.Duration) (string, error) {
 	ds.lock.Lock()
@@ -123,7 +123,7 @@ func (ds *Database) BQPop(key string, timeout time.Duration) (string, error) {
 	return ds.bqPopWithTimeout(key, timeout)
 }
 
-// qPopWithTimeout retrieves and removes the last inserted value from the queue with the given key and expiration time.
+// retrieve and removes the last inserted value from the queue with the given key and expiration time.
 // If the queue is empty, it blocks the request until a value is available or the timeout is reached.
 func (ds *Database) qPopWithTimeout(key string, kv *KeyValuePair, timeout time.Duration) (string, error) {
 	ds.lock.Lock()
@@ -157,7 +157,7 @@ func (ds *Database) qPopWithTimeout(key string, kv *KeyValuePair, timeout time.D
 	}
 }
 
-// bqPopWithTimeout retrieves and removes the last inserted value from the queue with the given key.
+// retrieve and removes the last inserted value from the queue with the given key.
 // If the queue is empty, it blocks the request until a value is available or the timeout is reached.
 func (ds *Database) bqPopWithTimeout(key string, timeout time.Duration) (string, error) {
 	ds.lock.Lock()
@@ -178,7 +178,7 @@ func (ds *Database) bqPopWithTimeout(key string, timeout time.Duration) (string,
 	}
 }
 
-// startExpiryCleanup starts a goroutine that periodically checks and removes expired keys from the database
+// start a goroutine that periodically checks and removes expired keys from the database
 func (ds *Database) startExpiryCleanup() {
 	ds.ticker = time.NewTicker(time.Second)
 	go func() {
@@ -194,12 +194,10 @@ func (ds *Database) startExpiryCleanup() {
 	}()
 }
 
-// concatValues concatenates the values with space separator
 func concatValues(values []string) string {
 	return strings.Join(values, " ")
 }
 
-// splitValues splits the value string into a slice of values
 func splitValues(value string) []string {
 	return strings.Fields(value)
 }
