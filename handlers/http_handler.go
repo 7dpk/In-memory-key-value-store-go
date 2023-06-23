@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
+	"github.com/7dpk/keyvaluestore/commandparser"
 	"github.com/7dpk/keyvaluestore/database"
 )
 
@@ -75,28 +75,24 @@ func (h *HTTPHandler) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	command := requestBody.Command
-	parts := strings.Fields(command)
-	if len(parts) == 0 {
-		writeErrorJSON(w, "empty command", http.StatusBadRequest)
+	cmd, params, err := commandparser.ParseCommand(command)
+	if err != nil {
+		writeErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	switch parts[0] {
+	switch cmd {
 	case "SET":
-		if len(parts) < 3 {
-			writeErrorJSON(w, "invalid SET command", http.StatusBadRequest)
-			return
-		}
-		key := parts[1]
-		value := parts[2]
-		var expiry time.Duration
-		var condition string
+		key := params[0]
+		value := params[1]
+		expiry := time.Duration(0)
+		condition := ""
 
-		if len(parts) > 3 {
-			for i := 3; i < len(parts); i++ {
-				part := parts[i]
-				if part == "EX" && i+1 < len(parts) {
-					expiryStr := parts[i+1]
+		if len(params) > 2 {
+			for i := 2; i < len(params); i++ {
+				param := params[i]
+				if param == "EX" && i+1 < len(params) {
+					expiryStr := params[i+1]
 					expirySeconds, err := strconv.Atoi(expiryStr)
 					if err != nil {
 						writeErrorJSON(w, "invalid expiry time", http.StatusBadRequest)
@@ -104,8 +100,11 @@ func (h *HTTPHandler) HandleRequest(w http.ResponseWriter, r *http.Request) {
 					}
 					expiry = time.Duration(expirySeconds) * time.Second
 					i++
-				} else if part == "NX" || part == "XX" {
-					condition = part
+				} else if param == "NX" || param == "XX" {
+					condition = param
+				} else {
+					writeErrorJSON(w, "invalid command", http.StatusBadRequest)
+					return
 				}
 			}
 		}
@@ -118,11 +117,7 @@ func (h *HTTPHandler) HandleRequest(w http.ResponseWriter, r *http.Request) {
 
 		writeBlankJSON(w)
 	case "GET":
-		if len(parts) != 2 {
-			writeErrorJSON(w, "invalid GET command", http.StatusBadRequest)
-			return
-		}
-		key := parts[1]
+		key := params[0]
 		value, err := h.Database.Get(key)
 		if err != nil {
 			writeErrorJSON(w, err.Error(), http.StatusNotFound)
@@ -130,20 +125,12 @@ func (h *HTTPHandler) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		writeValueJSON(w, value)
 	case "QPUSH":
-		if len(parts) < 3 {
-			writeErrorJSON(w, "invalid QPUSH command", http.StatusBadRequest)
-			return
-		}
-		key := parts[1]
-		values := parts[2:]
+		key := params[0]
+		values := params[1:]
 		h.Database.QPush(key, values)
 		writeBlankJSON(w)
 	case "QPOP":
-		if len(parts) != 2 {
-			writeErrorJSON(w, "invalid QPOP command", http.StatusBadRequest)
-			return
-		}
-		key := parts[1]
+		key := params[0]
 		value, err := h.Database.QPop(key)
 		if err != nil {
 			writeErrorJSON(w, err.Error(), http.StatusNotFound)
@@ -151,12 +138,8 @@ func (h *HTTPHandler) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		writeValueJSON(w, value)
 	case "BQPOP":
-		if len(parts) != 3 {
-			writeErrorJSON(w, "invalid BQPOP command", http.StatusBadRequest)
-			return
-		}
-		key := parts[1]
-		timeoutStr := parts[2]
+		key := params[0]
+		timeoutStr := params[1]
 		timeoutSeconds, err := strconv.ParseFloat(timeoutStr, 64)
 		if err != nil {
 			writeErrorJSON(w, "invalid timeout", http.StatusBadRequest)

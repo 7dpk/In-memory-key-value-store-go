@@ -6,18 +6,17 @@ This in-memory key-value database allows performing operations on it using a RES
 
 1. Open a terminal and navigate to the root directory of the project.
 
-2. Install dependencies:
-
-   ```shell
-   go mod download
-   ```
-3. Compile the code
+2. Compile the code
     ```shell
     go build cmd
     ```
-4. Run
+3. Run the executable
    ```shell
    ./cmd
+   ```
+4. Run the tests
+   ```shell
+   go run -v ./tests/
    ```
 
 ## Code Structure
@@ -30,6 +29,9 @@ The code is organized into multiple directories in following fashion:
   - `database.go`: Defines the `Database` struct and its associated methods, including `NewDatabase`, `Set`, `Get`, `QPush`, `QPop` and `BQPop`. `startExpiryCleanup` function handles the expiry cleanup functionality.
 - `handlers/`
   - `http_handler.go`: Implements the HTTP request handlers for the database commands.
+- `commandparser/`
+  - `commandparser.go`: This function implements command parsing in a user-friendly manner, while also checking for continuous spaces and disregarding them. It also includes error handling to address cases of malformed commands or incorrect numbers of arguments being passed.
+
 
 
 ## Database Functionality
@@ -76,13 +78,14 @@ The `QPOP` command returns the last inserted value from the queue. Here's the pa
 
 ### BQPOP Command
 
-The `BQPOP` command is a blocking queue read operation that blocks the thread until a value is read from the queue. Here's the pattern for the `BQPOP` command:
+The `BQPOP` command is a blocking queue read operation that wait for a timeout period, if the element is available in the queue before the timeout, the element is returned otherwise a empty value after the timeout period.
+ `BQPOP` command:
 
 `BQPOP <key> <timeout>`
 
 
 - `<key>`: The name of the queue to read from.
-- `<timeout>`: The duration in seconds to wait until a value is read from the queue.
+- `<timeout>`: The duration in seconds to wait until a value is available from the queue.
 
 ## Expiry Cleanup
 
